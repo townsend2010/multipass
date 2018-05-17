@@ -44,6 +44,7 @@ message LaunchRequest {
     string time_zone = 7;
     string cloud_init_user_data = 8;
     string remote_name = 9;
+    string custom_image_path = 10;
 }
 
 message LaunchError {
@@ -214,6 +215,7 @@ message SSHInfo {
     int32 port = 1;
     string priv_key_base64 = 2;
     string host = 3;
+    string username = 4;
 }
 
 message SSHInfoReply {

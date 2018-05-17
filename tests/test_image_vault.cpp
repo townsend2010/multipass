@@ -106,7 +106,7 @@ struct ImageVault : public testing::Test
     QTemporaryDir cache_dir;
     QTemporaryDir data_dir;
     std::string instance_name{"valley-pied-piper"};
-    mp::Query default_query{instance_name, "xenial", false, ""};
+    mp::Query default_query{instance_name, "xenial", false, "", mp::Query::Type::SimpleStreams};
 };
 }
 
@@ -273,7 +273,7 @@ TEST_F(ImageVault, uses_image_from_prepare)
     }
 
     auto prepare = [&file_name](const mp::VMImage& source_image) -> mp::VMImage {
-        return {file_name, "", "", source_image.id, {}};
+        return {file_name, "", "", source_image.id, "", "", {}};
     };
 
     mp::DefaultVMImageVault vault{&host, &url_downloader, cache_dir.path(), data_dir.path(), mp::days{0}};
@@ -300,7 +300,7 @@ TEST_F(ImageVault, image_purged_expired)
             file.write("");
             file.flush();
         }
-        return {file_name, "", "", source_image.id, {}};
+        return {file_name, "", "", source_image.id, "", "", {}};
     };
     auto vm_image = vault.fetch_image(mp::FetchType::ImageOnly, default_query, prepare, stub_monitor);
 
@@ -327,7 +327,7 @@ TEST_F(ImageVault, image_exists_not_expired)
             file.write("");
             file.flush();
         }
-        return {file_name, "", "", source_image.id, {}};
+        return {file_name, "", "", source_image.id, "", "", {}};
     };
     auto vm_image = vault.fetch_image(mp::FetchType::ImageOnly, default_query, prepare, stub_monitor);
 
@@ -336,4 +336,29 @@ TEST_F(ImageVault, image_exists_not_expired)
     vault.prune_expired_images();
 
     EXPECT_TRUE(QFileInfo::exists(file_name));
+}
+
+TEST_F(ImageVault, invalid_custom_image_file_throws)
+{
+    mp::DefaultVMImageVault vault{&host, &url_downloader, cache_dir.path(), data_dir.path(), mp::days{0}};
+    auto query = default_query;
+
+    query.release = "file://foo";
+    query.query_type = mp::Query::Type::LocalFile;
+
+    EXPECT_THROW(vault.fetch_image(mp::FetchType::ImageOnly, query, stub_prepare, stub_monitor), std::runtime_error);
+}
+
+TEST_F(ImageVault, custom_image_url_downloads)
+{
+    mp::DefaultVMImageVault vault{&host, &url_downloader, cache_dir.path(), data_dir.path(), mp::days{0}};
+    auto query = default_query;
+
+    query.release = "http://www.foo.com/fake.img";
+    query.query_type = mp::Query::Type::HttpDownload;
+
+    vault.fetch_image(mp::FetchType::ImageOnly, query, stub_prepare, stub_monitor);
+
+    EXPECT_THAT(url_downloader.downloaded_files.size(), Eq(1));
+    EXPECT_TRUE(url_downloader.downloaded_urls.contains(QString::fromStdString(query.release)));
 }
