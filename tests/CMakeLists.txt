@@ -46,6 +46,7 @@ add_executable(multipass_tests
   test_output_formatter.cpp
   test_image_vault.cpp
   test_ip_address.cpp
+  test_metrics_histogram.cpp
   test_metrics_provider.cpp
   test_petname.cpp
   test_simple_streams_index.cpp
@@ -92,6 +93,7 @@ target_link_libraries(multipass_tests
   ip_address
   iso
   metrics
+  metrics_histogram
   petname
   simplestreams
   scp_test
